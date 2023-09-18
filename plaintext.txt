@@ -1,0 +1,98 @@
+from flask import Flask, request, jsonify
+import mlflow
+
+app = Flask(__name__)
+
+@app.route('/experiments', methods=['GET'])
+def list_experiments():
+    experiments = mlflow.tracking.MlflowClient().search_experiments()
+    return jsonify([exp.name for exp in experiments])
+
+@app.route('/experiments', methods=['POST'])
+def get_runs():
+    data = request.json
+    experiment_id = data['value']
+    print(experiment_id)
+    runs = mlflow.search_runs(experiment_ids=[experiment_id])
+    return jsonify(runs.to_dict(orient='records'))
+
+if __name__ == '__main__':
+    app.run(debug=True)
+
+
+
+import logo from './logo.svg';
+import './App.css';
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+
+function App() {
+  const [experiments, setExperiments] = useState([]);
+  const [selectedExperiment, setSelectedExperiment] = useState(null);
+  const [runs, setRuns] = useState([]);
+  console.log(experiments)
+  useEffect(() => {
+    axios.get('/experiments').then((response) => {
+      setExperiments(response.data);
+    });
+  }, []);
+
+  useEffect(() => {
+    if (selectedExperiment) {
+        axios.post('/experiments', {value:selectedExperiment})
+            .then(response => {
+                setRuns(response.data)
+            });
+    }
+  }, [selectedExperiment]);
+
+  return (
+      <div className="App">
+        <h1>MLflow Experiment Viewer</h1>
+        <div>
+          <h2>Experiments</h2>
+          <ul>
+            {experiments.map((experiment) => (
+                <li key={experiment} onClick={() => setSelectedExperiment(experiment)}>
+                  {experiment}
+                </li>
+            ))}
+          </ul>
+        </div>
+        <div>
+          {selectedExperiment && (
+              <>
+                <h2>Runs for {selectedExperiment}</h2>
+                <table>
+                  <thead>
+                  <tr>
+                    <th>Run ID</th>
+                    <th>Name</th>
+                    <th>Status</th>
+                    <th>Start Time</th>
+                  </tr>
+                  </thead>
+
+
+                  <tbody>
+                  {runs.map((run) => (
+                      <tr key={run.run_id}>
+                        <td>{run.run_id}</td>
+                        <td>{run.name}</td>
+                        <td>{run.status}</td>
+                        <td>{run.start_time}</td>
+                      </tr>
+                  ))}
+                  </tbody>
+                </table>
+              </>
+          )}
+        </div>
+      </div>
+  );
+}
+
+export default App;
+
+
+    
